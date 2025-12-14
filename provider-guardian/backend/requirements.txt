@@ -2,3 +2,7 @@ fastapi
 uvicorn
 pandas
 python-multipart
+aiofiles
+thefuzz
+python-Levenshtein
+requests

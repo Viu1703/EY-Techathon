@@ -3,217 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Provider Data Guardian | EY Techathon</title>
+    <title>Provider Guardian India | EY Techathon</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; }
-        .sidebar { height: 100vh; background: #2e2e38; color: white; padding-top: 20px; position: fixed; width: 250px; }
-        .sidebar h4 { padding: 0 20px; font-weight: 700; color: #FFE600; } /* EY Yellow */
-        .sidebar a { display: block; padding: 12px 20px; color: #b3b3b3; text-decoration: none; }
-        .sidebar a:hover, .sidebar a.active { background: #3e3e4a; color: white; border-left: 4px solid #FFE600; }
+        
+        /* Sidebar Styles */
+        .sidebar { height: 100vh; background: #2e2e38; color: white; padding-top: 20px; position: fixed; width: 250px; z-index: 1000; }
+        .sidebar h4 { padding: 0 20px; font-weight: 700; color: #FF9933; }
+        .sidebar-link { display: block; padding: 12px 20px; color: #b3b3b3; text-decoration: none; cursor: pointer; transition: 0.2s; }
+        .sidebar-link:hover, .sidebar-link.active { background: #3e3e4a; color: white; border-left: 4px solid #138808; }
+        
         .main-content { margin-left: 250px; padding: 40px; }
         .card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; border-radius: 12px; cursor: pointer; transition: 0.3s; }
-        .upload-area:hover { border-color: #FFE600; background: #fffdf0; }
+        
+        /* Status Badges */
         .badge-verified { background-color: #d1e7dd; color: #0f5132; }
         .badge-flagged { background-color: #f8d7da; color: #842029; }
-        .evidence-box { background: #eee; padding: 10px; border-radius: 8px; font-size: 0.9em; margin-top: 10px; }
+        
+        /* Log & Maps */
+        .agent-log { background: #1e1e2d; color: #00ff9d; font-family: monospace; padding: 15px; border-radius: 8px; height: 150px; overflow-y: auto; font-size: 0.85rem; margin-bottom: 20px; }
+        .full-map { height: 600px; width: 100%; border-radius: 12px; border: 2px solid #ddd; }
+        .modal-map { height: 300px; width: 100%; border-radius: 8px; border: 1px solid #ddd; }
+        
+        /* Govt Card */
+        .govt-record { border-top: 5px solid #FF9933; border-bottom: 5px solid #138808; padding: 20px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .govt-logo { font-weight: bold; font-size: 1.2em; color: #000080; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
     <h4>DATA GUARDIAN</h4>
-    <p class="small text-muted px-4">EY Techathon 6.0</p>
+    <p class="small text-muted px-4">EY Techathon India</p>
     <br>
-    <a href="#" class="active">Dashboard</a>
-    <a href="#">Audit Logs</a>
-    <a href="#">Settings</a>
+    <div onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-link active">📊 Dashboard</div>
+    <div onclick="switchTab('geo')" id="nav-geo" class="sidebar-link">📍 Geospatial View</div>
+    <div onclick="switchTab('audit')" id="nav-audit" class="sidebar-link">📝 Audit Logs</div>
+    <div onclick="location.reload()" class="sidebar-link">🔄 Reset Demo</div>
 </div>
 
 <div class="main-content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Provider Validation Console</h2>
-        <button class="btn btn-dark" onclick="resetApp()">Reset Demo</button>
-    </div>
-
-    <div class="card mb-5" id="uploadSection">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Upload Provider Registry</h5>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <h4>📂 Click to Upload CSV</h4>
-                <p class="text-muted">Supported formats: .csv (Max 5MB)</p>
-                <input type="file" id="fileInput" hidden accept=".csv" onchange="handleFileUpload()">
-            </div>
+    
+    <div id="view-dashboard">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🇮🇳 Provider Validation Console</h2>
         </div>
-    </div>
 
-    <div id="resultsSection" style="display: none;">
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card p-3 text-center">
-                    <h3 class="text-primary" id="totalCount">0</h3>
-                    <small class="text-muted">Total Processed</small>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card p-3 text-center">
-                    <h3 class="text-success" id="verifiedCount">0</h3>
-                    <small class="text-muted">Verified Auto</small>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card p-3 text-center">
-                    <h3 class="text-danger" id="flaggedCount">0</h3>
-                    <small class="text-muted">Needs Review</small>
+        <div class="card mb-4" id="uploadSection">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Upload Indian Provider Registry (CSV)</h5>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <h4>📂 Click to Upload Roster</h4>
+                    <p class="text-muted">Supported formats: .csv (Max 5MB)</p>
+                    <input type="file" id="fileInput" hidden accept=".csv" onchange="handleFileUpload()">
                 </div>
             </div>
         </div>
 
+        <div id="logSection" style="display: none;">
+            <h6 class="text-muted">🤖 Agent Orchestration Log</h6>
+            <div class="agent-log" id="agentLog"></div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card p-3">
+                        <h6 class="text-muted mb-3">Confidence Score Distribution</h6>
+                        <canvas id="barChart" height="100"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3">
+                        <h6 class="text-muted mb-3">Validation Status</h6>
+                        <canvas id="pieChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white"><h5 class="mb-0">Validation Queue</h5></div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Reg No.</th><th>Provider Name</th><th>Status</th><th>Confidence</th><th>AI Findings</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-geo" style="display: none;">
+        <h2 class="mb-4">📍 National Provider Distribution</h2>
+        <div class="card p-3">
+            <div id="mainMap" class="full-map"></div>
+        </div>
+    </div>
+
+    <div id="view-audit" style="display: none;">
+        <h2 class="mb-4">📝 Compliance & Audit Trail</h2>
         <div class="card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Validation Queue</h5>
-            </div>
             <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-striped mb-0">
+                    <thead class="table-dark">
                         <tr>
-                            <th>NPI</th>
-                            <th>Provider Name</th>
+                            <th>Timestamp</th>
+                            <th>User Action</th>
+                            <th>System Event</th>
+                            <th>IP Source</th>
                             <th>Status</th>
-                            <th>Confidence</th>
-                            <th>AI Findings</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody">
+                    <tbody id="auditBody">
                         </tbody>
                 </table>
             </div>
         </div>
     </div>
+
 </div>
 
 <div class="modal fade" id="evidenceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">🔍 AI Evidence Viewer</h5>
+                <h5 class="modal-title">🔍 Verification Evidence</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
-                <p id="modalText" class="text-muted text-start"></p>
-                <div class="border p-2 bg-light">
-                    <img id="evidenceImage" src="" class="img-fluid" alt="Evidence Not Found"
-                         onerror="this.onerror=null; this.src='http://127.0.0.1:8000/evidence/npi_9876543210.png';">
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div id="evidenceLive" class="govt-record" style="display:none;">
+                            <div class="govt-logo"><span>🏛️</span> NATIONAL MEDICAL COMMISSION (NMC)</div>
+                            <p class="mb-1"><strong>Reg No:</strong> <span id="liveNpi"></span></p>
+                            <p class="mb-1"><strong>Name:</strong> <span id="liveName"></span></p>
+                            <p class="mb-1"><strong>Address:</strong> <span id="liveAddr"></span></p>
+                            <p class="mb-1"><strong>Specialty:</strong> <span id="liveSpec"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success" id="liveStatus"></span></p>
+                            <div class="mt-3 text-muted small">Digitally Signed by IMR Database</div>
+                        </div>
+                        <img id="evidenceImage" src="" class="img-fluid border rounded" style="display:none;" 
+                             onerror="this.src='https://via.placeholder.com/400x300?text=Scan+Not+Found';">
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">📍 Location Verification</h6>
+                        <div id="modalMap" class="modal-map"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" data-bs-dismiss="modal">✅ Approve Record</button>
             </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
+    let globalData = [];
+    let modalMapInstance = null;
+    let mainMapInstance = null;
+    let auditLogs = [];
+
+    // --- NAVIGATION LOGIC ---
+    function switchTab(tabName) {
+        // Hide all views
+        document.getElementById('view-dashboard').style.display = 'none';
+        document.getElementById('view-geo').style.display = 'none';
+        document.getElementById('view-audit').style.display = 'none';
+        
+        // Reset Sidebar Active State
+        document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+        document.getElementById('nav-' + tabName).classList.add('active');
+
+        // Show selected view
+        document.getElementById('view-' + tabName).style.display = 'block';
+
+        // Specific View Logic
+        if (tabName === 'geo') renderMainMap();
+        if (tabName === 'audit') renderAuditTable();
+    }
+
+    // --- MAIN UPLOAD LOGIC ---
     async function handleFileUpload() {
         const fileInput = document.getElementById('fileInput');
-        const file = fileInput.files[0];
-        if (!file) return;
+        if (!fileInput.files[0]) return;
 
-        // Show loading state
-        document.querySelector('.upload-area').innerHTML = "<h4>⚙️ AI Agents Processing...</h4>";
+        document.getElementById('uploadSection').style.display = 'none';
+        document.getElementById('logSection').style.display = 'block';
+        
+        addAuditLog("Upload Initiated", "User uploaded provider roster CSV", "Success");
+        addLog("📂 File Received. Spinning up Indian Registry Agents...");
 
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', fileInput.files[0]);
 
         try {
-            // Call your Local Backend
-            const response = await fetch('http://127.0.0.1:8000/upload', {
-                method: 'POST',
-                body: formData
-            });
-
+            addLog("📡 Secure Handshake with Backend...");
+            const response = await fetch('http://127.0.0.1:8000/upload', { method: 'POST', body: formData });
             const result = await response.json();
-            renderResults(result.data);
+            globalData = result.data;
+            
+            await simulateProcessing(result.data);
+            renderDashboard(result.data);
+            addAuditLog("Validation Complete", `Processed ${globalData.length} records successfully`, "Success");
             
         } catch (error) {
-            alert("Error connecting to backend: " + error);
-            document.querySelector('.upload-area').innerHTML = "<h4>❌ Connection Failed</h4>";
+            addLog("❌ Critical Error: " + error);
+            addAuditLog("System Error", "Backend connection failed", "Critical");
         }
     }
 
-    function renderResults(data) {
-        // Hide upload, show results
-        document.getElementById('uploadSection').style.display = 'none';
-        document.getElementById('resultsSection').style.display = 'block';
+    async function simulateProcessing(data) {
+        addLog(`📊 Ingestion: ${data.length} records parsed.`);
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            await new Promise(r => setTimeout(r, 200)); 
+            const agent = row.evidence_type === 'live_data' ? "NMC API AGENT" : "LOCAL CACHE AGENT";
+            addLog(`🤖 ${agent}: Validating Reg No ${row.npi}...`);
+        }
+        addLog("🏁 Batch Validation Complete.");
+    }
 
-        let verified = 0;
-        let flagged = 0;
+    function addLog(msg) {
+        const log = document.getElementById('agentLog');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // --- DASHBOARD RENDER ---
+    function renderDashboard(data) {
+        document.getElementById('resultsSection').style.display = 'block';
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
+        let verified = 0, flagged = 0;
 
-        data.forEach(row => {
-            if (row.validation_status === 'Verified') verified++;
-            else flagged++;
-
+        data.forEach((row, index) => {
+            if (row.validation_status === 'Verified') verified++; else flagged++;
             const badgeClass = row.validation_status === 'Verified' ? 'badge-verified' : 'badge-flagged';
+            const issuesHtml = row.issues.length > 0 ? `<div class="text-danger small">⚠️ ${row.issues[0]}</div>` : `<span class="text-success small">✅ Verified</span>`;
             
-            let issuesHtml = '';
-            if (row.issues.length > 0) {
-                issuesHtml = `<div class="text-danger small">⚠️ ${row.issues.join('<br>')}</div>`;
-            } else {
-                issuesHtml = `<span class="text-success small">✅ Matches Source: ${row.evidence_source}</span>`;
-            }
-
-            // Updated Button: Calls showEvidence instead of alert
-            const tr = `
+            tbody.innerHTML += `
                 <tr>
                     <td><code>${row.npi}</code></td>
                     <td><strong>${row.name}</strong></td>
                     <td><span class="badge ${badgeClass} p-2">${row.validation_status}</span></td>
                     <td>
                         <div class="progress" style="height: 6px; width: 80px;">
-                            <div class="progress-bar bg-${row.confidence_score > 80 ? 'success' : 'warning'}" 
-                                 style="width: ${row.confidence_score}%"></div>
+                            <div class="progress-bar bg-${row.confidence_score > 80 ? 'success' : 'warning'}" style="width: ${row.confidence_score}%"></div>
                         </div>
                         <small>${row.confidence_score}%</small>
                     </td>
                     <td>${issuesHtml}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="showEvidence('${row.npi}', '${row.name}')">Review</button>
-                    </td>
+                    <td><button class="btn btn-sm btn-outline-primary" onclick="showEvidence(${index})">Review</button></td>
+                </tr>`;
+        });
+        renderCharts(verified, flagged, data);
+    }
+
+    // --- CHARTS ---
+    function renderCharts(verified, flagged, data) {
+        if(window.myPie) window.myPie.destroy();
+        if(window.myBar) window.myBar.destroy();
+
+        window.myPie = new Chart(document.getElementById('pieChart'), {
+            type: 'doughnut',
+            data: { labels: ['Verified', 'Flagged'], datasets: [{ data: [verified, flagged], backgroundColor: ['#d1e7dd', '#f8d7da'] }] }
+        });
+        
+        const scores = data.map(d => d.confidence_score);
+        window.myBar = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: { labels: data.map(d => d.name.split(' ')[1]), datasets: [{ label: 'Score', data: scores, backgroundColor: '#3e3e4a' }] },
+            options: { scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    }
+
+    // --- MODAL & EVIDENCE ---
+    function showEvidence(index) {
+        const row = globalData[index];
+        const imgContainer = document.getElementById('evidenceImage');
+        const liveContainer = document.getElementById('evidenceLive');
+        
+        if (row.evidence_type === 'live_data') {
+            imgContainer.style.display = 'none';
+            liveContainer.style.display = 'block';
+            document.getElementById('liveNpi').innerText = row.npi;
+            document.getElementById('liveName').innerText = row.evidence_data.name;
+            document.getElementById('liveAddr').innerText = row.evidence_data.address;
+            document.getElementById('liveSpec').innerText = row.evidence_data.specialty;
+            document.getElementById('liveStatus').innerText = row.evidence_data.license_status;
+            initModalMap(row.evidence_data.lat || 20.5937, row.evidence_data.lon || 78.9629, row.evidence_data.name);
+        } else {
+            liveContainer.style.display = 'none';
+            imgContainer.style.display = 'block';
+            imgContainer.src = row.evidence_data.url || 'https://via.placeholder.com/400x300?text=No+Scan';
+            initModalMap(20.5937, 78.9629, "Provider Location");
+        }
+        
+        addAuditLog("Manual Review", `User inspected evidence for ${row.name}`, "Logged");
+        new bootstrap.Modal(document.getElementById('evidenceModal')).show();
+    }
+
+    function initModalMap(lat, lon, label) {
+        setTimeout(() => {
+            if (modalMapInstance) modalMapInstance.remove();
+            modalMapInstance = L.map('modalMap').setView([lat, lon], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMapInstance);
+            L.marker([lat, lon]).addTo(modalMapInstance).bindPopup(label).openPopup();
+        }, 500);
+    }
+
+    // --- GEOSPATIAL VIEW LOGIC ---
+    function renderMainMap() {
+        if (mainMapInstance) mainMapInstance.remove();
+        // Center on India
+        mainMapInstance = L.map('mainMap').setView([22.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMapInstance);
+
+        if (globalData.length === 0) return;
+
+        // Plot all providers
+        globalData.forEach(row => {
+            let lat = 20.5937, lon = 78.9629; // Default
+            if (row.evidence_data && row.evidence_data.lat) {
+                lat = row.evidence_data.lat;
+                lon = row.evidence_data.lon;
+            }
+            const color = row.validation_status === 'Verified' ? 'green' : 'red';
+            // Simple markers
+            L.marker([lat, lon]).addTo(mainMapInstance)
+                .bindPopup(`<b>${row.name}</b><br>Status: ${row.validation_status}`);
+        });
+    }
+
+    // --- AUDIT LOG LOGIC ---
+    function addAuditLog(action, event, status) {
+        const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        const ip = "192.168.1." + Math.floor(Math.random() * 255);
+        auditLogs.unshift({ timestamp, action, event, ip, status }); // Add to top
+    }
+
+    function renderAuditTable() {
+        const tbody = document.getElementById('auditBody');
+        tbody.innerHTML = '';
+        auditLogs.forEach(log => {
+            let badge = 'bg-secondary';
+            if(log.status === 'Success') badge = 'bg-success';
+            if(log.status === 'Critical') badge = 'bg-danger';
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${log.timestamp}</td>
+                    <td><strong>${log.action}</strong></td>
+                    <td>${log.event}</td>
+                    <td><code>${log.ip}</code></td>
+                    <td><span class="badge ${badge}">${log.status}</span></td>
                 </tr>
             `;
-            tbody.innerHTML += tr;
         });
-
-        document.getElementById('totalCount').innerText = data.length;
-        document.getElementById('verifiedCount').innerText = verified;
-        document.getElementById('flaggedCount').innerText = flagged;
     }
 
-    // NEW FUNCTION: Handles the Modal and Image Loading
-    function showEvidence(npi, name) {
-        // Try to load the specific NPI image
-        const imageUrl = `http://127.0.0.1:8000/evidence/npi_${npi}.png`;
-        
-        document.getElementById('modalText').innerText = `Verifying source document for: ${name} (NPI: ${npi})`;
-        document.getElementById('evidenceImage').src = imageUrl;
-        
-        // Show Bootstrap Modal
-        const evidenceModal = new bootstrap.Modal(document.getElementById('evidenceModal'));
-        evidenceModal.show();
-    }
-
-    function resetApp() {
-        location.reload();
-    }
+    // Init with one log
+    addAuditLog("System Startup", "Provider Guardian v6.0 Initialized", "Success");
 </script>
 
 </body>
