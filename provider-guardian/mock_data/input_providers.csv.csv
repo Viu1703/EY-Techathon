@@ -1,0 +1,4 @@
+npi,first_name,last_name,specialty,address,city,state,zip,license_status
+1234567890,John,Doe,Cardiology,123 Heart Lane,New York,NY,10001,Active
+9876543210,Jane,Smith,Dermatology,456 Skin St,Los Angeles,CA,90001,Active
+1122334455,Robert,Brown,Pediatrics,789 Kid Rd,Chicago,IL,60601,Expired

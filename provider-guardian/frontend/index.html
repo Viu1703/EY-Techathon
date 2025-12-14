@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provider Data Guardian | EY Techathon</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; }
+        .sidebar { height: 100vh; background: #2e2e38; color: white; padding-top: 20px; position: fixed; width: 250px; }
+        .sidebar h4 { padding: 0 20px; font-weight: 700; color: #FFE600; } /* EY Yellow */
+        .sidebar a { display: block; padding: 12px 20px; color: #b3b3b3; text-decoration: none; }
+        .sidebar a:hover, .sidebar a.active { background: #3e3e4a; color: white; border-left: 4px solid #FFE600; }
+        .main-content { margin-left: 250px; padding: 40px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .upload-area:hover { border-color: #FFE600; background: #fffdf0; }
+        .badge-verified { background-color: #d1e7dd; color: #0f5132; }
+        .badge-flagged { background-color: #f8d7da; color: #842029; }
+        .evidence-box { background: #eee; padding: 10px; border-radius: 8px; font-size: 0.9em; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h4>DATA GUARDIAN</h4>
+    <p class="small text-muted px-4">EY Techathon 6.0</p>
+    <br>
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Audit Logs</a>
+    <a href="#">Settings</a>
+</div>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Provider Validation Console</h2>
+        <button class="btn btn-dark" onclick="resetApp()">Reset Demo</button>
+    </div>
+
+    <div class="card mb-5" id="uploadSection">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Upload Provider Registry</h5>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <h4>📂 Click to Upload CSV</h4>
+                <p class="text-muted">Supported formats: .csv (Max 5MB)</p>
+                <input type="file" id="fileInput" hidden accept=".csv" onchange="handleFileUpload()">
+            </div>
+        </div>
+    </div>
+
+    <div id="resultsSection" style="display: none;">
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-primary" id="totalCount">0</h3>
+                    <small class="text-muted">Total Processed</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-success" id="verifiedCount">0</h3>
+                    <small class="text-muted">Verified Auto</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-danger" id="flaggedCount">0</h3>
+                    <small class="text-muted">Needs Review</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Validation Queue</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>NPI</th>
+                            <th>Provider Name</th>
+                            <th>Status</th>
+                            <th>Confidence</th>
+                            <th>AI Findings</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="evidenceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🔍 AI Evidence Viewer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p id="modalText" class="text-muted text-start"></p>
+                <div class="border p-2 bg-light">
+                    <img id="evidenceImage" src="" class="img-fluid" alt="Evidence Not Found"
+                         onerror="this.onerror=null; this.src='http://127.0.0.1:8000/evidence/npi_9876543210.png';">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">✅ Approve Record</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    async function handleFileUpload() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        // Show loading state
+        document.querySelector('.upload-area').innerHTML = "<h4>⚙️ AI Agents Processing...</h4>";
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            // Call your Local Backend
+            const response = await fetch('http://127.0.0.1:8000/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            renderResults(result.data);
+            
+        } catch (error) {
+            alert("Error connecting to backend: " + error);
+            document.querySelector('.upload-area').innerHTML = "<h4>❌ Connection Failed</h4>";
+        }
+    }
+
+    function renderResults(data) {
+        // Hide upload, show results
+        document.getElementById('uploadSection').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'block';
+
+        let verified = 0;
+        let flagged = 0;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(row => {
+            if (row.validation_status === 'Verified') verified++;
+            else flagged++;
+
+            const badgeClass = row.validation_status === 'Verified' ? 'badge-verified' : 'badge-flagged';
+            
+            let issuesHtml = '';
+            if (row.issues.length > 0) {
+                issuesHtml = `<div class="text-danger small">⚠️ ${row.issues.join('<br>')}</div>`;
+            } else {
+                issuesHtml = `<span class="text-success small">✅ Matches Source: ${row.evidence_source}</span>`;
+            }
+
+            // Updated Button: Calls showEvidence instead of alert
+            const tr = `
+                <tr>
+                    <td><code>${row.npi}</code></td>
+                    <td><strong>${row.name}</strong></td>
+                    <td><span class="badge ${badgeClass} p-2">${row.validation_status}</span></td>
+                    <td>
+                        <div class="progress" style="height: 6px; width: 80px;">
+                            <div class="progress-bar bg-${row.confidence_score > 80 ? 'success' : 'warning'}" 
+                                 style="width: ${row.confidence_score}%"></div>
+                        </div>
+                        <small>${row.confidence_score}%</small>
+                    </td>
+                    <td>${issuesHtml}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="showEvidence('${row.npi}', '${row.name}')">Review</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+
+        document.getElementById('totalCount').innerText = data.length;
+        document.getElementById('verifiedCount').innerText = verified;
+        document.getElementById('flaggedCount').innerText = flagged;
+    }
+
+    // NEW FUNCTION: Handles the Modal and Image Loading
+    function showEvidence(npi, name) {
+        // Try to load the specific NPI image
+        const imageUrl = `http://127.0.0.1:8000/evidence/npi_${npi}.png`;
+        
+        document.getElementById('modalText').innerText = `Verifying source document for: ${name} (NPI: ${npi})`;
+        document.getElementById('evidenceImage').src = imageUrl;
+        
+        // Show Bootstrap Modal
+        const evidenceModal = new bootstrap.Modal(document.getElementById('evidenceModal'));
+        evidenceModal.show();
+    }
+
+    function resetApp() {
+        location.reload();
+    }
+</script>
+
+</body>
+</html>

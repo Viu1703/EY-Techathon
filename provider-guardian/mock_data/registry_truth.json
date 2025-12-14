@@ -1,0 +1,29 @@
+{
+  "1234567890": {
+    "npi": "1234567890",
+    "name": "John Doe",
+    "specialty": "Cardiology",
+    "address": "123 Heart Lane, New York, NY 10001",
+    "license_status": "Active",
+    "source": "NPPES Registry",
+    "last_updated": "2025-11-01"
+  },
+  "9876543210": {
+    "npi": "9876543210",
+    "name": "Jane Smith",
+    "specialty": "Dermatology",
+    "address": "999 New Derma Blvd, Los Angeles, CA 90001",
+    "license_status": "Active",
+    "source": "Google Maps / Official Site",
+    "last_updated": "2025-11-05"
+  },
+  "1122334455": {
+    "npi": "1122334455",
+    "name": "Robert Brown",
+    "specialty": "Pediatrics",
+    "address": "789 Kid Rd, Chicago, IL 60601",
+    "license_status": "Active",
+    "source": "State Board",
+    "last_updated": "2025-11-08"
+  }
+}
