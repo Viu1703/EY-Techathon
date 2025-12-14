@@ -1,4 +1,9 @@
 reg_no,first_name,last_name,specialty,address,city,state,zip,license_status
-MCI-556677,Rajesh,Verma,Cardiology,Lotus Hospital Sector 62,Noida,UP,201301,Active
-MCI-998877,Ananya,Iyer,Pediatrics,100 Fake Street,Bangalore,KA,560034,Active
-MCI-112233,Suresh,Patel,Ortho,Civil Lines,Nagpur,MH,440001,Active
+MCI-1001,Aditi,Sharma,Neurology,Max Super Speciality Hospital Saket,New Delhi,Delhi,110017,Active
+MCI-2001,Vikram,Malhotra,Orthopedics,123 Fake Clinic Indiranagar,Bangalore,KA,560008,Active
+MCI-1002,Rohan,Gupta,Cardiology,Lilavati Hospital Bandra West,Mumbai,MH,400050,Active
+MCI-2002,Suresh,Patel,General Medicine,Central Avenue,Nagpur,MH,440018,Active
+MCI-1003,Arjun,Nair,Oncology,Amrita Hospital Edappally,Kochi,KL,682041,Active
+MCI-2003,Meera,Reddy,Gynecology,Apollo Hospitals Jubilee Hills,Hyderabad,TS,500033,Active
+MCI-1004,Kavita,Singh,Dermatology,Fortis Hospital Phase 8,Mohali,PB,160062,Active
+MCI-9999,Unknown,Doctor,General,Nowhere Road,City,State,000000,Active
